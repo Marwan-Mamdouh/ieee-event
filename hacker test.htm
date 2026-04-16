@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYSTEM BREACH</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Courier New', Courier, monospace;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  .scanline {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    );
+    z-index: 999;
+  }
+
+  .terminal {
+    width: 100%;
+    max-width: 820px;
+    border: 1.5px solid #188482;
+    border-radius: 4px;
+    padding: 0;
+    box-shadow: 0 0 32px rgba(24,132,130,0.25), 0 0 2px rgba(24,132,130,0.6) inset;
+    position: relative;
+  }
+
+  .terminal-header {
+    background: #0a1a1a;
+    border-bottom: 1px solid #188482;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .terminal-dots span {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    margin-right: 5px;
+    background: #188482;
+    opacity: 0.5;
+  }
+
+  .terminal-title {
+    color: #188482;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    flex: 1;
+    text-align: center;
+  }
+
+  .terminal-body {
+    padding: 28px 32px 36px;
+    min-height: 480px;
+  }
+
+  .line {
+    margin-bottom: 6px;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+
+  .sys { color: #188482; }
+  .user-text { color: #ffffff; }
+  .dim { color: #0d5756; }
+  .warn { color: #188482; letter-spacing: 1px; }
+
+  .prompt-prefix {
+    color: #188482;
+  }
+
+  .block { display: block; }
+
+  .spacer { height: 16px; }
+  .spacer-sm { height: 8px; }
+
+  .cursor {
+    display: inline-block;
+    width: 9px;
+    height: 15px;
+    background: #188482;
+    vertical-align: middle;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .question-block { display: none; }
+  .question-block.active { display: block; }
+
+  .question-text {
+    color: #188482;
+    font-size: 14px;
+    margin-bottom: 14px;
+    line-height: 1.7;
+  }
+
+  .options-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .option-btn {
+    background: transparent;
+    border: 1px solid #188482;
+    color: #fff;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    padding: 10px 16px;
+    cursor: pointer;
+    text-align: left;
+    letter-spacing: 0.5px;
+    transition: background 0.15s, color 0.15s;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .option-btn::before {
+    content: '> ';
+    color: #188482;
+  }
+
+  .option-btn:hover {
+    background: rgba(24,132,130,0.13);
+    color: #188482;
+  }
+
+  .option-btn.selected {
+    background: rgba(24,132,130,0.2);
+    color: #188482;
+    border-color: #188482;
+  }
+
+  .option-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .answer-echo {
+    color: #fff;
+    font-size: 13px;
+    margin-top: 6px;
+    padding-left: 4px;
+  }
+
+  .redirect-block {
+    display: none;
+    margin-top: 8px;
+  }
+
+  .redirect-block.visible {
+    display: block;
+  }
+
+  .glitch {
+    animation: glitch 0.3s linear;
+  }
+
+  @keyframes glitch {
+    0%   { transform: translateX(0); filter: none; }
+    25%  { transform: translateX(-3px); filter: brightness(1.5); }
+    50%  { transform: translateX(3px); }
+    75%  { transform: translateX(-1px); }
+    100% { transform: translateX(0); filter: none; }
+  }
+
+  .ascii-banner {
+    color: #188482;
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+    opacity: 0.85;
+  }
+
+  .progress-bar-wrap {
+    height: 3px;
+    background: #0a1a1a;
+    border-radius: 2px;
+    margin-bottom: 24px;
+    border: 1px solid #0d5756;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: #188482;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="scanline"></div>
+
+<div class="terminal" id="terminal">
+  <div class="terminal-header">
+    <div class="terminal-dots"><span></span><span></span><span></span></div>
+    <div class="terminal-title">SYSTEM BREACH — REMOTE ACCESS ESTABLISHED</div>
+  </div>
+  <div class="terminal-body" id="terminalBody">
+
+    <pre class="ascii-banner" id="asciiBanner" style="display:none">
+ ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗██████╗
+ ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗
+ ███████║███████║██║     █████╔╝ █████╗  ██║  ██║
+ ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║  ██║
+ ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██████╔╝
+ ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝</pre>
+
+    <div id="introLines"></div>
+
+    <div class="progress-bar-wrap" id="progressWrap" style="display:none">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+
+    <div id="q1" class="question-block">
+      <div class="question-text" id="q1text"></div>
+      <ul class="options-list" id="q1options"></ul>
+      <div class="answer-echo" id="q1echo"></div>
+    </div>
+
+    <div id="q2" class="question-block">
+      <div class="question-text" id="q2text"></div>
+      <ul class="options-list" id="q2options"></ul>
+      <div class="answer-echo" id="q2echo"></div>
+    </div>
+
+    <div id="q3" class="question-block">
+      <div class="question-text" id="q3text"></div>
+      <ul class="options-list" id="q3options"></ul>
+      <div class="answer-echo" id="q3echo"></div>
+    </div>
+
+    <div class="redirect-block" id="redirectBlock">
+      <div class="spacer-sm"></div>
+      <div class="line sys" id="redirectLine"></div>
+    </div>
+
+    <span class="cursor" id="mainCursor"></span>
+  </div>
+</div>
+
+<script>
+const REDIRECT_URL = "REPLACE_WITH_YOUR_URL";
+
+const QUESTIONS = [
+  {
+    prompt: "root@breach:~$ [QUESTION_1_PLACEHOLDER] — identify yourself.",
+    options: [
+      "ANSWER_1_A",
+      "ANSWER_1_B",
+      "ANSWER_1_C"
+    ]
+  },
+  {
+    prompt: "root@breach:~$ [QUESTION_2_PLACEHOLDER] — choose wisely.",
+    options: [
+      "ANSWER_2_A",
+      "ANSWER_2_B",
+      "ANSWER_2_C"
+    ]
+  },
+  {
+    prompt: "root@breach:~$ [QUESTION_3_PLACEHOLDER] — this is your last chance.",
+    options: [
+      "ANSWER_3_A",
+      "ANSWER_3_B",
+      "ANSWER_3_C"
+    ]
+  }
+];
+
+const INTRO_LINES = [
+  { text: "Initializing remote shell...", cls: "dim", delay: 0 },
+  { text: "Connection established — 1 host(s) compromised.", cls: "sys", delay: 500 },
+  { text: "Bypassing firewall.............. [DONE]", cls: "dim", delay: 1100 },
+  { text: "Decrypting local storage........ [DONE]", cls: "dim", delay: 1700 },
+  { text: "Mounting file system............ [DONE]", cls: "dim", delay: 2200 },
+  { text: "─────────────────────────────────────────────────────────────", cls: "dim", delay: 2700 },
+  { text: "WARNING: You have been compromised. Your device is under our control.", cls: "warn", delay: 3000 },
+  { text: "Your only way out is to cooperate. Answer the following questions.", cls: "sys", delay: 3600 },
+  { text: "─────────────────────────────────────────────────────────────", cls: "dim", delay: 4100 },
+];
+
+let currentQuestion = 0;
+const answers = [];
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function typeInto(el, text, speed = 28) {
+  return new Promise(resolve => {
+    let i = 0;
+    el.textContent = '';
+    const iv = setInterval(() => {
+      el.textContent += text[i];
+      i++;
+      if (i >= text.length) { clearInterval(iv); resolve(); }
+    }, speed);
+  });
+}
+
+async function showIntroLines() {
+  const container = document.getElementById('introLines');
+  document.getElementById('asciiBanner').style.display = 'block';
+
+  for (const item of INTRO_LINES) {
+    await sleep(item.delay === 0 ? 200 : 0);
+    const div = document.createElement('div');
+    div.className = `line ${item.cls}`;
+    container.appendChild(div);
+    await typeInto(div, item.text, 18);
+    await sleep(60);
+  }
+
+  const sp = document.createElement('div');
+  sp.className = 'spacer';
+  container.appendChild(sp);
+
+  await sleep(400);
+  document.getElementById('progressWrap').style.display = 'block';
+  await showQuestion(0);
+}
+
+function buildOptions(qIndex) {
+  const q = QUESTIONS[qIndex];
+  const listEl = document.getElementById(`q${qIndex+1}options`);
+  q.options.forEach((opt, i) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswer(qIndex, opt, listEl));
+    li.appendChild(btn);
+    listEl.appendChild(li);
+  });
+}
+
+async function showQuestion(qIndex) {
+  const block = document.getElementById(`q${qIndex+1}`);
+  const textEl = document.getElementById(`q${qIndex+1}text`);
+  block.classList.add('active');
+
+  await typeInto(textEl, QUESTIONS[qIndex].prompt, 22);
+  buildOptions(qIndex);
+  scrollBottom();
+}
+
+async function handleAnswer(qIndex, answer, listEl) {
+  answers.push(answer);
+
+  listEl.querySelectorAll('.option-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === answer) b.classList.add('selected');
+  });
+
+  const echo = document.getElementById(`q${qIndex+1}echo`);
+  echo.textContent = `>> You answered: ${answer}`;
+
+  document.getElementById('terminal').classList.add('glitch');
+  setTimeout(() => document.getElementById('terminal').classList.remove('glitch'), 350);
+
+  const pct = ((qIndex + 1) / QUESTIONS.length) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  await sleep(700);
+
+  if (qIndex + 1 < QUESTIONS.length) {
+    const sp = document.createElement('div');
+    sp.className = 'spacer-sm';
+    document.getElementById(`q${qIndex+1}`).appendChild(sp);
+    await showQuestion(qIndex + 1);
+  } else {
+    await showRedirect();
+  }
+}
+
+async function showRedirect() {
+  const block = document.getElementById('redirectBlock');
+  const line = document.getElementById('redirectLine');
+  block.classList.add('visible');
+
+  document.getElementById('mainCursor').style.display = 'none';
+
+  await sleep(400);
+  await typeInto(line, "Data transfer complete. Redirecting you now...", 22);
+  await sleep(900);
+
+  const countLine = document.createElement('div');
+  countLine.className = 'line sys';
+  block.appendChild(countLine);
+
+  for (let i = 3; i >= 1; i--) {
+    countLine.textContent = `Redirect in ${i}...`;
+    await sleep(900);
+  }
+  countLine.textContent = "Redirecting...";
+  await sleep(400);
+  window.location.href = REDIRECT_URL;
+}
+
+function scrollBottom() {
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+showIntroLines();
+</script>
+</body>
+</html>
